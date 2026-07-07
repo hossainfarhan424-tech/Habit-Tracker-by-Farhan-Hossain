@@ -1,0 +1,6 @@
+{
+  "name": "Habit Tracker",
+  "description": "A gamified, spreadsheet-style habit tracker with local persistence, analytics, and wellness insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
