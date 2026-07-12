@@ -67,7 +67,7 @@ fun HabitTrackerApp(viewModel: HabitViewModel) {
         val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
             val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
-            viewModel.handleGoogleSignInResult(account)
+            viewModel.handleGoogleSignInResult(account, context)
             viewModel.backupToGoogleDrive(context)
         } catch (e: Exception) {
             viewModel.handleGoogleSignInResult(null)
@@ -260,8 +260,8 @@ fun HabitTrackerApp(viewModel: HabitViewModel) {
                                 }
                             )
                             DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.Default.CloudUpload, contentDescription = "Cloud", tint = neonBlue, modifier = Modifier.size(16.dp)) },
-                                text = { Text("Google Sync & Backup", color = textWhite, fontSize = 12.sp) },
+                                leadingIcon = { Icon(Icons.Default.CloudUpload, contentDescription = "Cloud", tint = if (googleAccount != null) neonGreen else neonBlue, modifier = Modifier.size(16.dp)) },
+                                text = { Text(if (googleAccount != null) "Google Sync and Backup (Gmail Connected)" else "Google Sync & Backup", color = textWhite, fontSize = 12.sp) },
                                 onClick = {
                                     showGoogleBackupDialog = true
                                     showSettingsDropdown = false

@@ -33,8 +33,14 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         googleSignInAccount.value = GoogleSignIn.getLastSignedInAccount(context)
     }
 
-    fun handleGoogleSignInResult(account: GoogleSignInAccount?) {
+    fun handleGoogleSignInResult(account: GoogleSignInAccount?, context: android.content.Context? = null) {
         googleSignInAccount.value = account
+        if (account != null) {
+            backupStatus.value = "Google account connected successfully!"
+            context?.let {
+                android.widget.Toast.makeText(it, "Google account connected successfully!", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     fun signOut(context: android.content.Context) {
