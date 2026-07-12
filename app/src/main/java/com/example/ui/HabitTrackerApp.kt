@@ -67,10 +67,10 @@ fun HabitTrackerApp(viewModel: HabitViewModel) {
         val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
             val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
-            viewModel.handleGoogleSignInResult(account, context)
+            viewModel.handleGoogleSignInResult(account, null, context)
             viewModel.backupToGoogleDrive(context)
         } catch (e: Exception) {
-            viewModel.handleGoogleSignInResult(null)
+            viewModel.handleGoogleSignInResult(null, e, context)
         }
     }
 
@@ -1000,6 +1000,7 @@ fun HabitTrackerApp(viewModel: HabitViewModel) {
                                     com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
                                 )
                                     .requestEmail()
+                                    .requestIdToken("907853246347-uijpoit137emmtp4rqnmrkgpg3651h32.apps.googleusercontent.com")
                                     .requestScopes(com.google.android.gms.common.api.Scope("https://www.googleapis.com/auth/drive.appdata"))
                                     .build()
                                 val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
@@ -1102,6 +1103,105 @@ fun HabitTrackerApp(viewModel: HabitViewModel) {
                                 colors = ButtonDefaults.textButtonColors(contentColor = textMuted)
                             ) {
                                 Text("Dismiss", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    Divider(color = borderStrokeColor, modifier = Modifier.padding(vertical = 8.dp))
+
+                    // Offline Manual Backup Section
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Backup, contentDescription = "Offline Backup", tint = neonPurple, modifier = Modifier.size(20.dp))
+                        Text("Offline / Manual Backup", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = textWhite)
+                    }
+
+                    Text(
+                        text = "If you cannot connect your Google account in this environment, you can copy your progress as text, or paste a previously saved backup string to restore.",
+                        color = textMuted,
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Start,
+                        lineHeight = 15.sp,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    var importText by remember { mutableStateOf("") }
+                    var showImportInput by remember { mutableStateOf(false) }
+                    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                viewModel.exportBackupToClipboard { json ->
+                                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(json))
+                                    android.widget.Toast.makeText(context, "Backup copied to clipboard!", android.widget.Toast.LENGTH_LONG).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = cardBackground),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1.3f).border(1.dp, borderStrokeColor, RoundedCornerShape(8.dp))
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = neonBlue, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Export Text", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+
+                        Button(
+                            onClick = { showImportInput = !showImportInput },
+                            colors = ButtonDefaults.buttonColors(containerColor = cardBackground),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f).border(1.dp, borderStrokeColor, RoundedCornerShape(8.dp))
+                        ) {
+                            Icon(Icons.Default.ContentPaste, contentDescription = "Paste", tint = neonPurple, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (showImportInput) "Hide Import" else "Import Text", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+
+                    if (showImportInput) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = importText,
+                                onValueChange = { importText = it },
+                                label = { Text("Paste backup code here...", color = textMuted, fontSize = 11.sp) },
+                                modifier = Modifier.fillMaxWidth().height(100.dp),
+                                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = textWhite),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = neonPurple,
+                                    unfocusedBorderColor = borderStrokeColor,
+                                    focusedContainerColor = Color(0xFF0F121C),
+                                    unfocusedContainerColor = Color(0xFF0F121C)
+                                )
+                            )
+
+                            Button(
+                                onClick = {
+                                    if (importText.isNotBlank()) {
+                                        viewModel.importBackupFromString(importText) { success ->
+                                            if (success) {
+                                                importText = ""
+                                                showImportInput = false
+                                                android.widget.Toast.makeText(context, "Progress restored successfully!", android.widget.Toast.LENGTH_LONG).show()
+                                            } else {
+                                                android.widget.Toast.makeText(context, "Failed to restore backup. Invalid code.", android.widget.Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = neonPurple),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Apply Backup Code", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }

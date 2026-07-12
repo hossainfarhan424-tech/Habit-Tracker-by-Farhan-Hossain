@@ -29,23 +29,43 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         checkGoogleSignIn(application)
     }
 
+    private val moshi = com.squareup.moshi.Moshi.Builder()
+        .add(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory())
+        .build()
+    private val backupAdapter = moshi.adapter(BackupData::class.java)
+
     fun checkGoogleSignIn(context: android.content.Context) {
         googleSignInAccount.value = GoogleSignIn.getLastSignedInAccount(context)
     }
 
-    fun handleGoogleSignInResult(account: GoogleSignInAccount?, context: android.content.Context? = null) {
+    fun handleGoogleSignInResult(account: GoogleSignInAccount?, exception: Exception? = null, context: android.content.Context? = null) {
         googleSignInAccount.value = account
         if (account != null) {
             backupStatus.value = "Google account connected successfully!"
             context?.let {
                 android.widget.Toast.makeText(it, "Google account connected successfully!", android.widget.Toast.LENGTH_LONG).show()
             }
+        } else if (exception != null) {
+            val apiException = exception as? com.google.android.gms.common.api.ApiException
+            val statusCode = apiException?.statusCode
+            val errorMessage = when (statusCode) {
+                com.google.android.gms.common.api.CommonStatusCodes.DEVELOPER_ERROR -> 
+                    "Developer Error (10): Google Sign-In is not configured correctly on this build. Fall back to Offline Backup below."
+                12500 -> 
+                    "Sign-in failed (12500): Google Play Services cannot authenticate. Please use the Offline Backup below."
+                4 -> 
+                    "Sign-in failed (4): Google Play Services is currently offline/unavailable."
+                else -> "Sign-in failed: ${exception.localizedMessage ?: "Unknown error"} (Code: $statusCode)"
+            }
+            backupStatus.value = errorMessage
+            android.util.Log.e("GoogleSignIn", "Sign-in failed with code $statusCode", exception)
         }
     }
 
     fun signOut(context: android.content.Context) {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
+            .requestIdToken("907853246347-uijpoit137emmtp4rqnmrkgpg3651h32.apps.googleusercontent.com")
             .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
             .build()
         GoogleSignIn.getClient(context, gso).signOut().addOnCompleteListener {
@@ -68,7 +88,7 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
                     lastSyncedTime.value = sdf.format(java.util.Date())
                     syncStatus.value = "SECURE_SYNCED"
                 } else {
-                    backupStatus.value = "Backup failed: check internet or permissions"
+                    backupStatus.value = "Backup failed: Google Drive token could not be obtained."
                 }
             } catch (e: Exception) {
                 backupStatus.value = "Backup failed: ${e.localizedMessage}"
@@ -89,12 +109,43 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
                     repository.restoreBackupData(data)
                     backupStatus.value = "Progress restored successfully!"
                 } else {
-                    backupStatus.value = "No backup found or restore failed"
+                    backupStatus.value = "No backup found in your Google Drive AppData folder."
                 }
             } catch (e: Exception) {
                 backupStatus.value = "Restore failed: ${e.localizedMessage}"
             } finally {
                 isBackupLoading.value = false
+            }
+        }
+    }
+
+    fun exportBackupToClipboard(onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val data = repository.getBackupData()
+                val json = backupAdapter.toJson(data)
+                onResult(json)
+            } catch (e: Exception) {
+                backupStatus.value = "Export failed: ${e.localizedMessage}"
+            }
+        }
+    }
+
+    fun importBackupFromString(json: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val data = backupAdapter.fromJson(json)
+                if (data != null) {
+                    repository.restoreBackupData(data)
+                    backupStatus.value = "Progress restored successfully from manual backup!"
+                    onResult(true)
+                } else {
+                    backupStatus.value = "Import failed: Invalid data format"
+                    onResult(false)
+                }
+            } catch (e: Exception) {
+                backupStatus.value = "Import failed: ${e.localizedMessage}"
+                onResult(false)
             }
         }
     }

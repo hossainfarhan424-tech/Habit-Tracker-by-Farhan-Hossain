@@ -26,7 +26,15 @@ class GoogleDriveBackupManager(private val context: Context) {
     suspend fun getAccessToken(): String? = withContext(Dispatchers.IO) {
         val account = GoogleSignIn.getLastSignedInAccount(context) ?: return@withContext null
         try {
-            GoogleAuthUtil.getToken(context, account.account ?: return@withContext null, scope)
+            // First try with the Account object if available
+            val acc = account.account
+            if (acc != null) {
+                GoogleAuthUtil.getToken(context, acc, scope)
+            } else {
+                // Fallback to the account email address string
+                val email = account.email ?: return@withContext null
+                GoogleAuthUtil.getToken(context, email, scope)
+            }
         } catch (e: Exception) {
             Log.e("BackupManager", "Error getting token", e)
             null

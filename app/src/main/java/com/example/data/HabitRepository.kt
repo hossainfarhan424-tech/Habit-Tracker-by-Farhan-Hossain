@@ -66,11 +66,11 @@ class HabitRepository(private val habitDao: HabitDao) {
         val cleanedHabits = habitDao.getAllHabits()
         if (cleanedHabits.isEmpty()) {
             val defaults = listOf(
-                Habit(name = "Exercise", emoji = "💪", order = 1, attribute = "STR"),
-                Habit(name = "Walking", emoji = "🏃", order = 2, attribute = "VIT"),
-                Habit(name = "Meditation", emoji = "🧘", order = 3, attribute = "MND"),
-                Habit(name = "Study", emoji = "📚", order = 4, attribute = "INT"),
-                Habit(name = "Wake Up 6:30...", emoji = "⏰", order = 5, attribute = "DIS")
+                Habit(id = 1, name = "Exercise", emoji = "💪", order = 1, attribute = "STR"),
+                Habit(id = 2, name = "Walking", emoji = "🏃", order = 2, attribute = "VIT"),
+                Habit(id = 3, name = "Meditation", emoji = "🧘", order = 3, attribute = "MND"),
+                Habit(id = 4, name = "Study", emoji = "📚", order = 4, attribute = "INT"),
+                Habit(id = 5, name = "Wake Up 6:30...", emoji = "⏰", order = 5, attribute = "DIS")
             )
             defaults.forEach { habitDao.insertHabit(it) }
         }
@@ -93,15 +93,49 @@ class HabitRepository(private val habitDao: HabitDao) {
 
     suspend fun resetHabitsToDefaults() {
         val currentHabits = habitDao.getAllHabits()
+        val currentCompletions = habitDao.getAllCompletions()
+
+        // Delete all current habits
         currentHabits.forEach { habitDao.deleteHabit(it) }
+
         val defaults = listOf(
-            Habit(name = "Exercise", emoji = "💪", order = 1, attribute = "STR"),
-            Habit(name = "Walking", emoji = "🏃", order = 2, attribute = "VIT"),
-            Habit(name = "Meditation", emoji = "🧘", order = 3, attribute = "MND"),
-            Habit(name = "Study", emoji = "📚", order = 4, attribute = "INT"),
-            Habit(name = "Wake Up 6:30...", emoji = "⏰", order = 5, attribute = "DIS")
+            Habit(id = 1, name = "Exercise", emoji = "💪", order = 1, attribute = "STR"),
+            Habit(id = 2, name = "Walking", emoji = "🏃", order = 2, attribute = "VIT"),
+            Habit(id = 3, name = "Meditation", emoji = "🧘", order = 3, attribute = "MND"),
+            Habit(id = 4, name = "Study", emoji = "📚", order = 4, attribute = "INT"),
+            Habit(id = 5, name = "Wake Up 6:30...", emoji = "⏰", order = 5, attribute = "DIS")
         )
+        
+        // Insert default habits
         defaults.forEach { habitDao.insertHabit(it) }
+
+        // Map old completion habit IDs to the new default habit IDs
+        val idMap = mutableMapOf<Int, Int>()
+        currentHabits.forEachIndexed { index, oldHabit ->
+            val matchingDefault = defaults.find { 
+                it.name.equals(oldHabit.name, ignoreCase = true) || 
+                it.emoji == oldHabit.emoji ||
+                it.order == oldHabit.order
+            } ?: defaults.getOrNull(index)
+
+            if (matchingDefault != null) {
+                idMap[oldHabit.id] = matchingDefault.id
+            }
+        }
+
+        // Update the completions in the database to refer to the new default habit IDs
+        if (idMap.isNotEmpty() && currentCompletions.isNotEmpty()) {
+            val updatedCompletions = currentCompletions.map { completion ->
+                val newHabitId = idMap[completion.habitId]
+                if (newHabitId != null) {
+                    completion.copy(id = 0, habitId = newHabitId) // id = 0 so Room auto-generates new unique IDs for completion records
+                } else {
+                    completion.copy(id = 0)
+                }
+            }
+            habitDao.deleteAllCompletions()
+            habitDao.insertCompletions(updatedCompletions)
+        }
     }
 
     suspend fun getBackupData(): BackupData {
