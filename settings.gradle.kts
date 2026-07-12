@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Habit Tracker"
+rootProject.name = "Habit Grid Board"
 
 include(":app")

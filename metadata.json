@@ -1,6 +1,6 @@
 {
-  "name": "Habit Tracker",
-  "description": "A gamified, spreadsheet-style habit tracker with local persistence, analytics, and wellness insights.",
+  "name": "Habit Grid Board",
+  "description": "An elegant, high-fidelity spreadsheet-style habit tracker matrix grid with statistics, local persistence, and offline vault synchronization.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
