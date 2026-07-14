@@ -23,6 +23,7 @@ class HabitRepository(private val habitDao: HabitDao) {
     }
 
     suspend fun deleteHabit(habit: Habit) {
+        habitDao.deleteCompletionsForHabit(habit.id)
         habitDao.deleteHabit(habit)
     }
 

@@ -2447,6 +2447,7 @@ fun GridTrackerView(
 
     val horizontalScrollState = rememberScrollState()
     val verticalScrollState = rememberScrollState()
+    var selectedHabitForOptions by remember { mutableStateOf<Habit?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Title Bar matching the image
@@ -2589,10 +2590,8 @@ fun GridTrackerView(
                             .fillMaxWidth()
                             .height(52.dp)
                             .padding(horizontal = 6.dp)
-                            .combinedClickable(
-                                onClick = { onWellnessClick(String.format("%04d-%02d-01", year, month)) }, // generic fallback click
-                                onLongClick = { onEditHabit(habit) }
-                            ),
+                            .clickable { selectedHabitForOptions = habit }
+                            .testTag("habit_row_${habit.id}"),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(habit.emoji, fontSize = 16.sp, modifier = Modifier.padding(end = 4.dp))
@@ -2611,7 +2610,8 @@ fun GridTrackerView(
                         Box(
                             modifier = Modifier
                                 .size(16.dp)
-                                .clickable { onEditHabit(habit) },
+                                .clickable { selectedHabitForOptions = habit }
+                                .testTag("habit_options_dot_${habit.id}"),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("⋮", color = textMuted, fontSize = 12.sp)
@@ -2741,6 +2741,87 @@ fun GridTrackerView(
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    if (selectedHabitForOptions != null) {
+        val targetHabit = selectedHabitForOptions!!
+        Dialog(onDismissRequest = { selectedHabitForOptions = null }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .border(BorderStroke(1.dp, accentBlue), RoundedCornerShape(16.dp))
+                    .testTag("habit_options_dialog"),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF11141E)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Habit Options",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = textWhite
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(targetHabit.emoji, fontSize = 32.sp, modifier = Modifier.padding(end = 8.dp))
+                        Text(
+                            text = targetHabit.name,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp,
+                            color = textWhite,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            onEditHabit(targetHabit)
+                            selectedHabitForOptions = null
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("edit_habit_option_button"),
+                        colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Black, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Edit Habit", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = {
+                            onDeleteHabit(targetHabit)
+                            selectedHabitForOptions = null
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("delete_habit_option_button"),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Delete Habit", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    TextButton(
+                        onClick = { selectedHabitForOptions = null },
+                        modifier = Modifier.fillMaxWidth().testTag("cancel_habit_option_button")
+                    ) {
+                        Text("Cancel", color = textMuted)
                     }
                 }
             }

@@ -36,6 +36,9 @@ interface HabitDao {
     @Query("DELETE FROM habit_completions WHERE habitId = :habitId AND dateString = :dateString")
     suspend fun deleteCompletion(habitId: Int, dateString: String)
 
+    @Query("DELETE FROM habit_completions WHERE habitId = :habitId")
+    suspend fun deleteCompletionsForHabit(habitId: Int)
+
     // Wellness
     @Query("SELECT * FROM daily_wellness")
     fun getAllWellnessFlow(): Flow<List<DailyWellness>>
