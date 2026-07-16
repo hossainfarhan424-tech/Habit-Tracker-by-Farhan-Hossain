@@ -6,5 +6,6 @@
   "storageBucket": "sturdy-cocoa-zrtgb.firebasestorage.app",
   "messagingSenderId": "907853246347",
   "measurementId": "",
-  "oAuthClientId": "907853246347-uijpoit137emmtp4rqnmrkgpg3651h32.apps.googleusercontent.com"
+  "oAuthClientId": "907853246347-uijpoit137emmtp4rqnmrkgpg3651h32.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
 }
